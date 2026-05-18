@@ -2,7 +2,7 @@ from sqlalchemy import BOOLEAN, INTEGER, VARCHAR, VARCHAR, Integer, MetaData, Ta
 
 
 _all_ = 'user_table'
-db_metadata = MetaData(schema="public")
+db_metadata = MetaData()
 
 user_table = Table(
     'users',

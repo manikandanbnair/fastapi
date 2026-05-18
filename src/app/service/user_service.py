@@ -16,10 +16,12 @@ class UserService:
     
     def get_user(self, user_id: int = None):
 
-        return self._db.get_user(user_id)
+        result = self._db.get_user(user_id)
+        print(f"UserService.get_user: Retrieved user data: {result}")
+        return result
     
-    def create_user(self, user: User):
+    async def create_user(self, user: User):
 
-        result = self._db.create_user(user)
+        result = await self._db.create_user(user)
         if result:
             return user

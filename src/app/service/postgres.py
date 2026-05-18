@@ -37,9 +37,10 @@ class PostgresService:
     async def close(self):
         await self.engine.dispose()
 
+            
     async def test_connection(self) -> bool:
         try:
-            async with self.engine.connect() as conn:
+            async with self.engine.begin()as conn:
                 await conn.execute(
                     text("SELECT 1")
                 )
@@ -50,24 +51,27 @@ class PostgresService:
         
     async def execute_query(self, query: str):
         try:
-            async with self.engine.connect() as conn:
-                await conn.execute(text(query))
+            async with self.engine.begin()as conn:
+                await conn.execute(query)
         except Exception as e:
             print(f"Query execution failed: {e}")
             return None
         
     async def fetch_query(self, query: str):
         try:
-            async with self.engine.connect() as conn:
-                result = await conn.execute(text(query))
-                return result.fetchall()
+            async with self.engine.begin()as conn:
+                result = await conn.execute(query)
+                return [
+                dict(row)
+                for row in result.mappings().all()
+            ]
         except Exception as e:
             print(f"Query execution failed: {e}")
             return None
         
     async def fetch_one_query(self, query: str):
         try:
-            async with self.engine.connect() as conn:
+            async with self.engine.begin()as conn:
                 result = await conn.execute(text(query))
                 return result.fetchone()
         except Exception as e:
@@ -84,10 +88,10 @@ class PostgresService:
         )
         if user_id:
             query = query.where(user_table.c.id == user_id)
-        result: List[Row] = await self.fetch_query(query)
+        result= await self.fetch_query(query)
         return result
     
-    async def add_user(self, user_data: User):
+    async def create_user(self, user_data: User):
         query = user_table.insert().values(
             username=user_data.username,
             email=user_data.email,
