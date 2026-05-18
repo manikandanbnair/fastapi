@@ -6,8 +6,9 @@ from app.settings import Settings
 
 settings = Settings()
 
+
 class Service(containers.DeclarativeContainer):
-    config  = providers.Configuration()
+    config = providers.Configuration()
 
     db_service = providers.Singleton(
         PostgresService,
@@ -22,11 +23,8 @@ class Service(containers.DeclarativeContainer):
 class Containers(containers.DeclarativeContainer):
     config = providers.Configuration()
 
-    service: providers.Container[Service] = providers.Container(
-        Service, config = config
-    )
+    service: providers.Container[Service] = providers.Container(Service, config=config)
 
     user_service: providers.Singleton[UserService] = providers.Singleton(
-        UserService,
-        db = service.db_service
+        UserService, db=service.db_service
     )

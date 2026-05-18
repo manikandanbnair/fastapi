@@ -1,4 +1,3 @@
-
 from app.app import run_api
 
 if __name__ == "__main__":
