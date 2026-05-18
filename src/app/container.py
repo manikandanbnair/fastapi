@@ -4,10 +4,10 @@ from app.service.postgres import PostgresService
 from app.service.user_service import UserService
 from app.settings import Settings
 
+settings = Settings()
 
 class Service(containers.DeclarativeContainer):
-
-    settings = providers.Singleton(Settings)
+    config  = providers.Configuration()
 
     db_service = providers.Singleton(
         PostgresService,
