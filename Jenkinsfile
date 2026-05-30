@@ -4,12 +4,11 @@ pipeline {
 
     stages {
 
-        stage('Environment Check') {
+        stage('Build Images') {
 
             steps {
 
-                bat 'git --version'
-                bat 'docker --version'
+                bat 'docker build -t fastapi-backend .'
 
             }
         }
