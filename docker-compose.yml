@@ -2,7 +2,7 @@ services:
 
   api:
 
-    build: .
+    image: fastapi-backend:latest
 
     ports:
       - "8000:8000"
