@@ -1,12 +1,18 @@
 pipeline {
+
     agent any
-    
+
     stages {
-        stage('Hello') {
-            steps{
-                echo "Hello, World!"
+
+        stage('Environment Check') {
+
+            steps {
+
+                bat 'git --version'
+                bat 'docker --version'
+
             }
         }
-    }
 
-} 
+    }
+}
