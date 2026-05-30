@@ -9,8 +9,11 @@ from app.models.user_table import user_table
 
 class PostgresService:
     def __init__(self, db_name: str, user: str, password: str, host: str, port: int):
+
         self._databaseurl = (
-            f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db_name}"
+            f"postgresql+asyncpg://"
+            f"{user}:{password}@{host}:{port}/{db_name}"
+            f"?ssl=require"
         )
 
         self.engine = create_async_engine(self._databaseurl, echo=False)
