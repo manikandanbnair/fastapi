@@ -991,3 +991,387 @@ Repeated failures
     ↓
 Kubernetes restarts container
 ```
+
+
+# Kubernetes ConfigMaps & Secrets - Hands-On Notes
+
+## Goal
+
+Separate application code from configuration.
+
+Follow:
+
+```text
+Build Once
+Deploy Many Times
+```
+
+Instead of creating different Docker images for Dev, QA, and Prod.
+
+---
+
+# Current FastAPI Configuration
+
+Application reads:
+
+```env
+POSTGRES_HOST
+POSTGRES_PORT
+POSTGRES_USER
+POSTGRES_PASSWORD
+POSTGRES_DB_NAME
+```
+
+Using:
+
+```python
+class PostgresSettings(BaseSettings):
+    host: str
+    port: int
+    user: str
+    password: str
+    db_name: str
+
+    model_config = SettingsConfigDict(env_prefix="POSTGRES_")
+```
+
+Application only cares that environment variables exist.
+
+It does NOT care whether they come from:
+
+* .env file
+* Docker Compose
+* ConfigMap
+* Secret
+* Jenkins
+* Kubernetes
+
+---
+
+# ConfigMap
+
+Used for non-sensitive configuration.
+
+Examples:
+
+```text
+POSTGRES_HOST
+POSTGRES_PORT
+POSTGRES_DB_NAME
+```
+
+Example:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: postgres-config
+
+data:
+  POSTGRES_HOST: db.example.com
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB_NAME: neondb
+```
+
+Apply:
+
+```bash
+kubectl apply -f configmap.yaml
+```
+
+Verify:
+
+```bash
+kubectl get configmap
+kubectl describe configmap postgres-config
+```
+
+---
+
+# Secret
+
+Used for credentials and sensitive information.
+
+Examples:
+
+```text
+POSTGRES_USER
+POSTGRES_PASSWORD
+```
+
+Example:
+
+```yaml
+apiVersion: v1
+kind: Secret
+
+metadata:
+  name: postgres-secret
+
+type: Opaque
+
+stringData:
+  POSTGRES_USER: myuser
+  POSTGRES_PASSWORD: mypassword
+```
+
+Apply:
+
+```bash
+kubectl apply -f secret.yaml
+```
+
+Verify:
+
+```bash
+kubectl get secret
+kubectl describe secret postgres-secret
+```
+
+Secrets hide values in describe output.
+
+---
+
+# Injecting ConfigMap and Secret into Pods
+
+Deployment:
+
+```yaml
+envFrom:
+- configMapRef:
+    name: postgres-config
+
+- secretRef:
+    name: postgres-secret
+```
+
+Flow:
+
+```text
+ConfigMap
+      +
+Secret
+      ↓
+Pod Environment Variables
+      ↓
+Pydantic BaseSettings
+      ↓
+Application
+```
+
+Verify inside container:
+
+```bash
+kubectl exec -it <pod-name> -- printenv
+```
+
+Look for:
+
+```text
+POSTGRES_HOST
+POSTGRES_PORT
+POSTGRES_DB_NAME
+POSTGRES_USER
+POSTGRES_PASSWORD
+```
+
+---
+
+# Important Behavior
+
+Changing a ConfigMap or Secret:
+
+```text
+DOES NOT
+```
+
+automatically update running containers.
+
+Reason:
+
+```text
+Environment variables are loaded
+when the container starts.
+```
+
+Running containers continue using old values.
+
+---
+
+# Common Gotcha
+
+Scenario:
+
+```text
+1. Secret contains wrong password
+2. Pod starts
+3. App fails DB connection
+4. Secret fixed
+5. kubectl apply secret.yaml
+```
+
+Question:
+
+Will Pod automatically use new password?
+
+Answer:
+
+```text
+NO
+```
+
+Pod must restart.
+
+---
+
+# Why kubectl apply Deployment Did Nothing
+
+Deployment YAML:
+
+```yaml
+image: fastapi:v6
+```
+
+remained unchanged.
+
+Therefore:
+
+```text
+No Deployment change
+↓
+No ReplicaSet change
+↓
+No new Pods
+```
+
+Kubernetes only reacts to Deployment spec changes.
+
+---
+
+# Solution
+
+Force a rollout:
+
+```bash
+kubectl rollout restart deployment/fastapi-deployment
+```
+
+This creates new Pods.
+
+New Pods read the latest:
+
+```text
+ConfigMap
+Secret
+```
+
+values.
+
+---
+
+# ReplicaSet Relationship
+
+Changing:
+
+```text
+ConfigMap
+```
+
+or
+
+```text
+Secret
+```
+
+does NOT create a new ReplicaSet.
+
+Reason:
+
+ReplicaSets are based on:
+
+```text
+Deployment Pod Template
+```
+
+Secret contents are external to the Deployment spec.
+
+---
+
+# Production Pattern
+
+Update Secret:
+
+```bash
+kubectl apply -f secret.yaml
+kubectl rollout restart deployment/app
+```
+
+Update ConfigMap:
+
+```bash
+kubectl apply -f configmap.yaml
+kubectl rollout restart deployment/app
+```
+
+---
+
+# Security Notes
+
+Never commit real credentials:
+
+```yaml
+POSTGRES_PASSWORD: password
+```
+
+to Git.
+
+Kubernetes Secret is NOT a secret manager.
+
+Common production tools:
+
+* HashiCorp Vault
+* AWS Secrets Manager
+* Azure Key Vault
+* Google Secret Manager
+* External Secrets Operator
+
+---
+
+# Key Takeaways
+
+```text
+ConfigMap
+    ↓
+Non-sensitive configuration
+
+Secret
+    ↓
+Credentials
+
+ConfigMap + Secret
+    ↓
+Environment Variables
+
+Environment Variables
+    ↓
+Application Configuration
+```
+
+```text
+ConfigMap/Secret Change
+        ≠
+Pod Update
+```
+
+Need:
+
+```bash
+kubectl rollout restart deployment/<deployment-name>
+```
+
+for running containers to use new values.
+
+```
+```

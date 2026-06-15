@@ -1,9 +1,8 @@
-apiVersion : apps/v1
+---
+apiVersion: apps/v1
 kind: Deployment
-
 metadata:
   name: fastapi-deployment
-
 spec:
   replicas: 1
   selector:
@@ -15,20 +14,21 @@ spec:
         app: fastapi
     spec:
       containers:
-      - name: fastapi
-        image: manikandanbnair/fastapi-backend:v7
-        imagePullPolicy: IfNotPresent 
-        ports:
-        - containerPort: 8000
-          envFrom:
-          - configMapRef:
-              name: postgres-config
-        readinessProbe:
-          httpGet:
-            path: /db-health
-            port: 8000
-        livenessProbe:
-        
-          httpGet:
-            path: /live
-            port: 8000
+        - envFrom:
+            - configMapRef:
+                name: postgres-config
+            - secretRef:
+                name: postgres-secret
+          image: manikandanbnair/fastapi-backend:v7
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8000
+          name: fastapi
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /db-health
+              port: 8000
