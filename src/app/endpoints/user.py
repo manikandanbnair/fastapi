@@ -48,3 +48,8 @@ async def create_user(user: User):
         ),
         content={"success": bool(response)},
     )
+
+
+@user_router.get("/live")
+async def liveness_check():
+    return {"status": "alive"}

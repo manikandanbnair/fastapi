@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: postgres-config
+
+data:
+  POSTGRES_HOST: ep-spring-bread-ap2z5oqu.c-7.us-east-1.aws.neon.tech
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB_NAME: neondb
